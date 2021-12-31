@@ -6,6 +6,10 @@
 #include <condition_variable>
 #include <sys/time.h>
 
+//对deque进行了封装，用于存放日志信息
+//PS：这里的实现不标准，不应该在函数里面进行lock_guard来限制读类型的函数，
+//      比如front()、back()、empty()、size()、full()、capacity()，
+//      因为作用域结束了没有任何意义（除非有多个线程同时操作deque）
 template<class T>
 class BlockDeque {
 public:
@@ -48,9 +52,9 @@ private:
 
     bool isClose_;
 
-    std::condition_variable condConsumer_;
+    std::condition_variable condConsumer_;  //在pop时会wait，在push_front和push_back时会notify
 
-    std::condition_variable condProducer_;
+    std::condition_variable condProducer_;  //在push_front和push_back时会wait，在pop时会notify
 };
 
 
