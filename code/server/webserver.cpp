@@ -225,7 +225,6 @@ void WebServer::OnRead_(HttpConn* client) {
         CloseConn_(client);
         return;
     }
-
     // 业务逻辑的处理
     OnProcess(client);
 }

@@ -7,3 +7,7 @@ $(target):$(obj)
 
 %.o:%.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@
+
+.PHONY:clean
+clean:
+	rm $(obj) -f
