@@ -266,7 +266,6 @@ void WebServer::OnWrite_(HttpConn* client) {
             return;
         }
     }
-
     CloseConn_(client);
 }
 
