@@ -21,7 +21,7 @@ void HttpConn::init(int fd, const sockaddr_in& addr) {
     userCount++;
     addr_ = addr;
     fd_ = fd;
-    // 初始化写缓冲和读缓冲
+    // 每一个Http连接都有自己的用户态读写缓冲区
     writeBuff_.RetrieveAll();
     readBuff_.RetrieveAll();
     isClose_ = false;
@@ -56,10 +56,12 @@ int HttpConn::GetPort() const {
 
 ssize_t HttpConn::read(int* saveErrno) {
     // 一次性读出所有数据
+    printf("start HttpConn::read\n");
     ssize_t len = -1;
     do {
         len = readBuff_.ReadFd(fd_, saveErrno);
         if (len <= 0) {
+            printf("HttpConn::read: len<=0, break\n");
             break;
         }
     } while (isET);
@@ -106,10 +108,12 @@ ssize_t HttpConn::write(int* saveErrno) {
 //  业务逻辑处理（这里只提供了一个资源访问功能）
 bool HttpConn::process() {
     // 初始化请求对象
+    printf("start HttpConn::process()\n");
     request_.Init();
     
     // 尝试读取数据并进行相应处理
     if(readBuff_.ReadableBytes() <= 0) {    // 判断是否有请求数据
+        printf("No available data, return false\n");
         return false;
     }
     else if(request_.parse(readBuff_)) {    // 有数据就解析HTTP请求

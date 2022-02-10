@@ -25,6 +25,7 @@ bool HttpRequest::IsKeepAlive() const {
 
 // 解析HTTP请求的数据
 bool HttpRequest::parse(Buffer& buff) {
+    printf("parsing Data\n");
     const char CRLF[] = "\r\n"; // 行结束符
     if(buff.ReadableBytes() <= 0) {
         return false;
@@ -64,6 +65,7 @@ bool HttpRequest::parse(Buffer& buff) {
         buff.RetrieveUntil(lineEnd + 2);//剩下2个字符 (\r\n)，所以+2
     }
     LOG_DEBUG("[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
+    printf("parse Data Finish\n");
     return true;
 }
 

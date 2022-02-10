@@ -10,4 +10,4 @@ $(target):$(obj)
 
 .PHONY:clean
 clean:
-	rm $(obj) -f
+	rm -f $(obj)

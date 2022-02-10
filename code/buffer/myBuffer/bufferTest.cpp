@@ -76,8 +76,8 @@ void ret_to_str_test(){
 }
 
 int main(){
-    // recur_read_test();
-    // capicity_extenstion_test();
-    // Fd_test();
+    recur_read_test();
+    capicity_extenstion_test();
+    Fd_test();
     ret_to_str_test();
 }

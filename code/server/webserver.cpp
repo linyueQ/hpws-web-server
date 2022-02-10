@@ -30,7 +30,7 @@ WebServer::WebServer(
     
     // 初始化网络通信相关的一些内容
     if(!InitSocket_()) { isClose_ = true;}
-
+    printf("Init before Log init\n");
     if(openLog) {
         // 初始化日志信息
         Log::Instance()->init(logLevel, "./log", ".log", logQueSize);
@@ -46,6 +46,7 @@ WebServer::WebServer(
             LOG_INFO("SqlConnPool num: %d, ThreadPool num: %d", connPoolNum, threadNum);
         }
     }
+    printf("Init after Log init\n");
 }
 
 WebServer::~WebServer() {
@@ -91,6 +92,7 @@ void WebServer::InitEventMode_(int trigMode) {
 
 // 启动服务器（服务器运行期间都会在while循环中进行）
 void WebServer::Start() {
+    printf("WebServer start\n");
     int timeMS = -1;  /* epoll wait timeout == -1 无事件将阻塞 */
     if(!isClose_) { LOG_INFO("========== Server start =========="); }
     //下面这里就是服务器的监听逻辑了，其实就是epoll里面的epoll_wait主线程
@@ -107,6 +109,7 @@ void WebServer::Start() {
         // 这样做的目的是为了让epoll_wait()调用次数变少，提高效率
         int eventCnt = epoller_->Wait(timeMS);
 
+        printf("\n==============epoller_wait start==============\n");
         // 循环处理每一个事件
         for(int i = 0; i < eventCnt; i++) {
             /* 处理事件 */
@@ -120,18 +123,21 @@ void WebServer::Start() {
             
             // 错误的一些情况
             else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+                printf("events error or EPOLLRDHUP|EPOLLHUP!\n");
                 assert(users_.count(fd) > 0);
                 CloseConn_(&users_[fd]);    // 关闭连接
             }
 
             // 有数据到达
             else if(events & EPOLLIN) {
+                printf("start to read data\n");
                 assert(users_.count(fd) > 0);
                 DealRead_(&users_[fd]); // 处理读操作
             }
             
             // 可以发送数据
             else if(events & EPOLLOUT) {
+                printf("start to write data\n");
                 assert(users_.count(fd) > 0);
                 DealWrite_(&users_[fd]);    // 处理写操作
             } else {
@@ -215,12 +221,13 @@ void WebServer::ExtentTime_(HttpConn* client) {
 
 // 这个方法是在子线程中执行的（读取数据），这是一个状态（先读取数据）
 void WebServer::OnRead_(HttpConn* client) {
+    printf("Start OnRead\n");
     assert(client);
     int ret = -1;
     int readErrno = 0;
     // 读数据-->用户缓冲区（对应HttpConn对象的readBuffer里面）
     ret = client->read(&readErrno); 
-
+    printf("%d\n",ret);
     if(ret <= 0 && readErrno != EAGAIN) {
         CloseConn_(client);
         return;

@@ -11,6 +11,8 @@
  * 
  * 为了区分Buffer是否填满，比起vector大小设置为size+1；
  * 
+ * 大坑：readPos_为0时会引发各种各样的错误
+ * 
  ********************************************************************************/
 
 Buffer::Buffer(int initBuffSize) : buffer_(initBuffSize), readPos_(0), writePos_(0) {}
@@ -29,7 +31,9 @@ size_t Buffer::ReadableBytes() const {
 size_t Buffer::WritableBytes() const {
     //对应上述三种情况，只需要分为比它小的和比它大的就可以
     if(writePos_>=readPos_) {
-        return WritableTailBytes()+readPos_-1;
+        //readPos_为0时是特殊的，WritableTailBytes()无法用到最后一个格子的数据
+        if(readPos_==0) return WritableTailBytes();
+        else return WritableTailBytes()+readPos_-1;
     } else {
         return readPos_-writePos_-1;
     }
@@ -40,7 +44,10 @@ size_t Buffer::capacity() const {
 }
 
 size_t Buffer::WritableTailBytes() const {
-    return buffer_.size()-writePos_;
+    int tailBytes=buffer_.size()-writePos_;
+    //这是个坑，因为writePos_<readPos_时至少要留下一个空位
+    if(readPos_==0) tailBytes-=1; 
+    return tailBytes;
 }
 
 size_t Buffer::ReadableTailBytes() const {
@@ -155,6 +162,7 @@ void Buffer::MakeSpace_(size_t len) {
     //我们可以在扩容后，执行一次空间重整，把writePos_那段数据挪到后面去，让writePos_>=readPos_
     if(writePos_<readPos_){
         std::copy(BeginPtr_(), BeginPtr_() + writePos_, BeginPtr_() + tail);
+        writePos_=tail+writePos_;
     }
 }
 
@@ -163,6 +171,7 @@ void Buffer::MakeSpace_(size_t len) {
 //从文件描述符的TCP缓冲区中读取数据
 ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     
+    printf("start Buffer::ReadFd\n");
     // 临时的数组，保证能够把所有的数据都读出来
     char buff[65535];
     
@@ -175,23 +184,27 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     //  第二块是填补0~readPos_-1的空间
     //  第三块则是为了防止Buffer当前空间不够，所以临时申请的buff空间，映射到这一块来；
     if(writePos_>=readPos_){
+        //readPos_是size_t，size_t是unsigned int啊！！！
+        printf("Buffer::ReadFd: writePos_>=readPos_\n");
         iov[0].iov_base = BeginPtr_() + writePos_;
         iov[0].iov_len = WritableTailBytes();
         iov[1].iov_base = BeginPtr_();
-        iov[1].iov_len = readPos_-1;
+        iov[1].iov_len = (readPos_>=1 ? readPos_-1:0);
         iov[2].iov_base = buff;
         iov[2].iov_len = sizeof(buff);
     }else{
+        printf("Buffer::ReadFd: writePos_<readPos_\n");
         iov[0].iov_base = BeginPtr_() + writePos_;
         iov[0].iov_len = WritableBytes();
-        iov[1].iov_base = BeginPtr_()+ readPos_-1;
+        iov[1].iov_base = BeginPtr_()+ (readPos_>=1 ? readPos_-1:0);
         iov[1].iov_len = 0;
         iov[2].iov_base = buff;
         iov[2].iov_len = sizeof(buff);
     }
-    const ssize_t len = readv(fd, iov, 2);
+    const ssize_t len = readv(fd, iov, 3);
     if(len < 0) {
         *saveErrno = errno;
+        perror("ReadFd Fail");
     }
     // 读出的长度小于Buffer的剩余空间
     else if(static_cast<size_t>(len) <= WritableBytes()) {
@@ -199,9 +212,10 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     }
     // 读出的长度大于Buffer的剩余空间，扩容之后将buff数据复制到里面去
     else {
-        writePos_ = readPos_-1;//已经写满了数据
+        //已经写满了数据，所以writePos_应该更新到
         Append(buff, len - WritableBytes());
     }
+    printf("finish Buffer::ReadFd\n");
     return len;
 }
 

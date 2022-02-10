@@ -6,7 +6,7 @@
 #include <queue>
 #include <thread>
 #include <functional>
-using namespace std;
+#include <assert.h>
 
 //线程池是基于“生产者-消费者”模型来写的
 class MyThreadPool {
