@@ -109,6 +109,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     const ssize_t len = readv(fd, iov, 2);
     if(len < 0) {
         *saveErrno = errno;
+        // perror("ReadFd Fail");
     }
     // 读出的长度小于readBuff的剩余空间
     else if(static_cast<size_t>(len) <= writable) {

@@ -171,7 +171,7 @@ void Buffer::MakeSpace_(size_t len) {
 //从文件描述符的TCP缓冲区中读取数据
 ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     
-    printf("start Buffer::ReadFd\n");
+    // printf("start Buffer::ReadFd\n");
     // 临时的数组，保证能够把所有的数据都读出来
     char buff[65535];
     
@@ -185,7 +185,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     //  第三块则是为了防止Buffer当前空间不够，所以临时申请的buff空间，映射到这一块来；
     if(writePos_>=readPos_){
         //readPos_是size_t，size_t是unsigned int啊！！！
-        printf("Buffer::ReadFd: writePos_>=readPos_\n");
+        // printf("Buffer::ReadFd: writePos_>=readPos_\n");
         iov[0].iov_base = BeginPtr_() + writePos_;
         iov[0].iov_len = WritableTailBytes();
         iov[1].iov_base = BeginPtr_();
@@ -193,7 +193,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
         iov[2].iov_base = buff;
         iov[2].iov_len = sizeof(buff);
     }else{
-        printf("Buffer::ReadFd: writePos_<readPos_\n");
+        // printf("Buffer::ReadFd: writePos_<readPos_\n");
         iov[0].iov_base = BeginPtr_() + writePos_;
         iov[0].iov_len = WritableBytes();
         iov[1].iov_base = BeginPtr_()+ (readPos_>=1 ? readPos_-1:0);
@@ -204,7 +204,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
     const ssize_t len = readv(fd, iov, 3);
     if(len < 0) {
         *saveErrno = errno;
-        perror("ReadFd Fail");
+        // perror("ReadFd Fail");
     }
     // 读出的长度小于Buffer的剩余空间
     else if(static_cast<size_t>(len) <= WritableBytes()) {
@@ -215,7 +215,7 @@ ssize_t Buffer::ReadFd(int fd, int* saveErrno) {
         //已经写满了数据，所以writePos_应该更新到
         Append(buff, len - WritableBytes());
     }
-    printf("finish Buffer::ReadFd\n");
+    // printf("finish Buffer::ReadFd\n");
     return len;
 }
 
