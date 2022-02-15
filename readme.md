@@ -1,19 +1,18 @@
 # WebServer
-用C++实现的高性能WEB服务器，经过webbenchh压力测试可以实现上万的QPS
+用C++14实现了一个高性能WEB服务器，并使用了webbench对index.html进行了并发访问测试
 
 ## 功能
-* 利用IO复用技术Epoll与线程池实现多线程的Reactor高并发模型；
-* 利用正则与状态机解析HTTP请求报文，实现处理静态资源的请求；
-* 利用标准库容器封装char，实现自动增长的缓冲区；
-* 基于小根堆实现的定时器，关闭超时的非活动连接；
-* 利用单例模式与阻塞队列实现异步的日志系统，记录服务器运行状态；
-* 利用RAII机制实现了数据库连接池，减少数据库连接建立与关闭的开销，同时实现了用户注册登录功能。
+* 利用IO多路复用技术epoll和线程池实现了Reactor高并发模型；
+* 基于C++11新特性实现了一个支持异步返回结果的线程池；
+* 使用C++11的有限状态机和正则表达式逐行解析HTTP请求报文，实现了静态资源请求的处理；
+* 使用STL封装char模拟队列结构，实现了具备扩容能力的RingBuffer用户级缓冲区；
+* 基于小根堆实现了的连接定时器，用于关闭超时的非活跃连接；
+* 利用单例模式（懒汉式）和阻塞队列（deque+mutex）实现异步的日志系统，在多线程下记录服务器的运行状态；
+* 利用RAII机制实现了数据库连接池，减少数据库连接反复建立与关闭的开销，同时实现了用户注册登录功能;
 
-* 增加logsys,threadpool测试单元(todo: timer, sqlconnpool, httprequest, httpresponse) 
-
-## 环境要求
-* Linux
-* C++14
+## 环境
+* Linux-Ubuntu 18.04
+* C++11/14
 * MySql
 
 ## 目录树
@@ -79,17 +78,22 @@ make
 ```
 
 ## 压力测试
-![image-webbench](https://github.com/markparticle/WebServer/blob/master/readme.assest/%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95.png)
 ```bash
-./webbench-1.5/webbench -c 100 -t 10 http://ip:port/
-./webbench-1.5/webbench -c 1000 -t 10 http://ip:port/
-./webbench-1.5/webbench -c 5000 -t 10 http://ip:port/
-./webbench-1.5/webbench -c 10000 -t 10 http://ip:port/
-```
-* 测试环境: Ubuntu:19.10 cpu:i5-8400 内存:8G 
-* QPS 10000+
+linyueq@ubuntu:~/WebServer-master$ ./webbench-1.5/webbench -c 8000 -t 10 http://192.168.77.129:1316/index.html
+Webbench - Simple Web Benchmark 1.5
+Copyright (c) Radim Kolar 1997-2004, GPL Open Source Software.
 
-## TODO
-* config配置
-* 完善单元测试
-* 实现循环缓冲区
+Benchmarking: GET http://192.168.77.129:1316/index.html
+8000 clients, running 10 sec.
+
+Speed=160818 pages/min, 8663507 bytes/sec.
+Requests: 26803 susceed, 0 failed.
+
+8000 clients, running 10 sec.
+
+Speed=160818 pages/min, 8663507 bytes/sec.
+Requests: 26803 susceed, 0 failed.
+```
+
+* 测试环境: VMware Ubuntu:18.04 cpu:i7-8550U 内存:4G 
+* 结果：Client 8000 | QPS 2.6K+

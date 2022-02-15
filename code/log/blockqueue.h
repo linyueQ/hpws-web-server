@@ -150,6 +150,7 @@ bool BlockDeque<T>::full(){
 template<class T>
 bool BlockDeque<T>::pop(T &item) {
     std::unique_lock<std::mutex> locker(mtx_);
+    //队列为空会一直等待，所以不会使写文件的线程退出
     while(deq_.empty()){
         condConsumer_.wait(locker);
         if(isClose_){

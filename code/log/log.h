@@ -12,6 +12,7 @@
 #include "blockqueue.h"
 #include "../buffer/buffer.h"
 
+//多个线程往BlockQueue里面写内容，单个线程负责把数据写到文件中
 class Log {
 public:
     void init(int level, const char* path = "./log", 
