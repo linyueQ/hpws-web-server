@@ -21,9 +21,9 @@
 #include "../log/log.h"
 
 typedef std::function<void()> TimeoutCallBack;      //异步回调函数
-typedef std::chrono::high_resolution_clock Clock;
-typedef std::chrono::milliseconds MS;
-typedef Clock::time_point TimeStamp;
+typedef std::chrono::high_resolution_clock Clock;   //时钟类
+typedef std::chrono::milliseconds MS;               //毫秒
+typedef Clock::time_point TimeStamp;                //时间戳
 
 struct TimerNode {
     int id;                 //定时器id

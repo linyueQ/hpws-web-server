@@ -66,15 +66,10 @@ INSERT INTO user(username, password) VALUES('name', 'password');
 ```
 
 ```bash
+//根目录下执行编译
 make
+//执行服务器
 ./bin/server
-```
-
-## 单元测试
-```bash
-cd test
-make
-./test
 ```
 
 ## 压力测试

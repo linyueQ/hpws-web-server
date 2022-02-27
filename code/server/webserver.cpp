@@ -121,7 +121,7 @@ void WebServer::Start() {
                 DealListen_();  // 处理监听的操作，接受客户端连接
             }
             
-            // 错误的一些情况
+            // 需要终止HTTP连接的一些情况
             else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 // printf("events error or EPOLLRDHUP|EPOLLHUP!\n");
                 assert(users_.count(fd) > 0);

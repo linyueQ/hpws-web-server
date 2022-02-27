@@ -32,7 +32,7 @@ bool HttpRequest::parse(Buffer& buff) {
     }
     // buff中有数据可读，并且状态没有到FINISH，就一直解析
     while(buff.ReadableBytes() && state_ != FINISH) {
-        // 获取一行数据，找到缓冲区当前第一个\r\n为结束标志
+        // 获取一行数据，找到缓冲区当前第一个\r\n为结束标志（后两个参数是被查找内容的地址）
         const char* lineEnd = search(buff.Peek(), buff.BeginWriteConst(), CRLF, CRLF + 2);
         std::string line(buff.Peek(), lineEnd);//特殊的string构造形式
         switch(state_)

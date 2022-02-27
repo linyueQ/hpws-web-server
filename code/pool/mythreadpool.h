@@ -13,7 +13,7 @@
 
 class MyThreadPool{
 private:
-    using Task=std::function<void()>;
+    using Task=std::function<void()>;      // 设置成void()表示函数不接受任何参数，用bind做包装的函数统一无参
     struct Pool{
         std::vector<std::thread> threads;  // 存放线程，可扩容
         std::queue<Task> tasks;            // 存放待处理任务
