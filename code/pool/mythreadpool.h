@@ -18,8 +18,8 @@ private:
         std::vector<std::thread> threads;  // 存放线程，可扩容
         std::queue<Task> tasks;            // 存放待处理任务
         std::mutex mtx;                    // 锁tasks
-        std::atomic<int> idleThreadNum;    // 有多少个空闲的线程
         std::condition_variable cond;      // 避免线程反复无效地获取mtx
+        std::atomic<int> idleThreadNum;    // 有多少个空闲的线程
         std::atomic<bool> isClosed;        // 标识线程池是否关闭
     };
     std::shared_ptr<Pool> _pool;
@@ -98,7 +98,11 @@ public:
 		if (pool->isClosed) throw std::runtime_error("Thread pool has closed!\n");
 		//Step2：创建任务实例
 		using retType = decltype(f(args...));
+        //task获取到的是一个返回值为retType()，参数为()的provider
+        // 这里之所以要用make_shared一方面是为了方便自动释放packaged_task，
+        // 另一方面则是因为packaged_task是不可引用的
 		auto task = std::make_shared<std::packaged_task<retType()>>(
+            //bind得到的本身就是一个binder，类似于void()
 			std::bind(std::forward<F>(f), std::forward<ARGS>(args)...)
 		);
 		//Step3：创建future获取异步返回值
