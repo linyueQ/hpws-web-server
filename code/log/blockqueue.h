@@ -71,6 +71,10 @@ BlockDeque<T>::~BlockDeque() {
 
 template<class T>
 void BlockDeque<T>::Close() {
+    //这真的是一个bug，根本没有解决析构的race_condition，单纯就是
+    //  每次ctrl+c没有析构而已，不然程序早就崩溃了，这里析构就不应该
+    //  干任何的事情，外界通过shared_ptr来创建BlockDeque，然后外界
+    //  使用者通通用weak_ptr来访问该对象
     {   
         std::lock_guard<std::mutex> locker(mtx_);
         deq_.clear();

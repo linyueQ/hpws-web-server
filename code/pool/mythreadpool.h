@@ -10,6 +10,7 @@
 #include <future>
 #include <atomic>
 #include <stdexcept>
+#include <signal.h>
 
 class MyThreadPool{
 private:
@@ -70,6 +71,8 @@ public:
     void ThreadCreate(){
         std::shared_ptr<Pool>& pool=_pool;
         Task task=nullptr;
+        //确保不会收到SIGPIPE就挂掉
+        signal(SIGPIPE,SIG_IGN);
         while(true){
             //这里这么写的最大缺点是它每次都要创建一个unique_lock
             std::unique_lock<std::mutex> locker(pool->mtx);

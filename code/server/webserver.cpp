@@ -14,6 +14,7 @@ WebServer::WebServer(
     // /home/linyueq/WebServer-master/
     srcDir_ = getcwd(nullptr, 256); // 获取当前的工作路径
     assert(srcDir_);
+    printf("%s\n",srcDir_);
     // /home/linyueq/WebServer-master/resources/
     strncat(srcDir_, "/resources/", 16);    // 拼接出资源目录
     
@@ -22,15 +23,16 @@ WebServer::WebServer(
     HttpConn::userCount = 0;        //当前所有连接数
     HttpConn::srcDir = srcDir_;     //设置资源目录
 
-    // 初始化数据库连接池
+    // Step3：初始化数据库连接池
     SqlConnPool::Instance()->Init("localhost", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
 
-    // 初始化epoll事件的模式（指EPOLL的触发模式、以及最开始要监听什么类型的事件）
+    // Step4：初始化epoll事件的模式（指EPOLL的触发模式、以及最开始要监听什么类型的事件）
     InitEventMode_(trigMode);
     
-    // 初始化网络通信相关的一些内容
+    // Step5：初始化Socket相关的一些内容
     if(!InitSocket_()) { isClose_ = true;}
     // printf("Init before Log init\n");
+    // Step6：初始化日志
     if(openLog) {
         // 初始化日志信息
         Log::Instance()->init(logLevel, "./log", ".log", logQueSize);
@@ -46,6 +48,8 @@ WebServer::WebServer(
             LOG_INFO("SqlConnPool num: %d, ThreadPool num: %d", connPoolNum, threadNum);
         }
     }
+    // Step7：无视SIGPIPE信号
+    signal(SIGPIPE, SIG_IGN);
     // printf("Init after Log init\n");
 }
 
@@ -91,6 +95,7 @@ void WebServer::InitEventMode_(int trigMode) {
 }
 
 // 启动服务器（服务器运行期间都会在while循环中进行）
+//EventLoop
 void WebServer::Start() {
     // printf("WebServer start\n");
     int timeMS = -1;  /* epoll wait timeout == -1 无事件将阻塞 */
@@ -168,15 +173,15 @@ void WebServer::CloseConn_(HttpConn* client) {
 // 添加客户端
 void WebServer::AddClient_(int fd, sockaddr_in addr) {
     assert(fd > 0);
-    //初始化客户端连接（直接存到unordered_map里面了）
+    //Step1：初始化客户端连接（直接存到unordered_map里面了）
     users_[fd].init(fd, addr);
     if(timeoutMS_ > 0) {
-        // 添加到定时器对象中，当检测到超时时执行CloseConn_函数进行关闭连接
+        // Step2：添加到定时器对象中，当检测到超时时执行CloseConn_函数进行关闭连接
         timer_->add(fd, timeoutMS_, std::bind(&WebServer::CloseConn_, this, &users_[fd]));
     }
-    // 添加到epoll中进行管理
+    // Step3：添加到epoll中进行管理
     epoller_->AddFd(fd, EPOLLIN | connEvent_);
-    // 设置文件描述符非阻塞
+    // Step4：设置文件描述符非阻塞
     SetFdNonblock(fd);
     LOG_INFO("Client[%d] in!", users_[fd].GetFd());
 }
@@ -228,6 +233,7 @@ void WebServer::OnRead_(HttpConn* client) {
     // 读数据-->用户缓冲区（对应HttpConn对象的readBuffer里面）
     ret = client->read(&readErrno); 
     // printf("%d\n",ret);
+    //读到小于等于0并且不是EAGAIN（非阻塞socket进行读数据的时候也可能得到小于0的返回值，但是会返回EAGAIN的信号）
     if(ret <= 0 && readErrno != EAGAIN) {
         CloseConn_(client);
         return;
@@ -266,13 +272,15 @@ void WebServer::OnWrite_(HttpConn* client) {
             return;
         }
     }
-    else if(ret < 0) {//考虑到有可能会因为写缓冲区满了，导致用户缓冲区有数据没传完的情况，所以要判断EAGAIN
+    else if(ret < 0) {
+        //考虑到有可能会因为socket写缓冲区满了，导致用户缓冲区有数据没传完的情况，所以要判断EAGAIN
         if(writeErrno == EAGAIN) {
             /* 继续传输 */
             epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
             return;
         }
     }
+    //如果另一端突然关闭，那返回的ret<0，并且收到EPIPE
     CloseConn_(client);
 }
 
@@ -301,7 +309,7 @@ bool WebServer::InitSocket_() {
     
     if(openLinger_) {
         /* 优雅关闭: 直到所剩数据发送完毕或超时 */
-        optLinger.l_onoff = 1;  //是否等待缓冲区中所剩数据全部发送，并由对方应用接收后才（不仅仅是收到ACK）
+        optLinger.l_onoff = 1;  //是否等待缓冲区中所剩数据全部发送，并由对方应用接收后才关闭（不仅仅是收到ACK）
         optLinger.l_linger = 1; //优雅关闭最长延迟多少时间，单位为s
     }
     ret = setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
@@ -329,7 +337,7 @@ bool WebServer::InitSocket_() {
         return false;
     }
 
-    //第二个参数为backlog，min(backlog, somaxconn)共同影响半连接队列的代销
+    //第二个参数为backlog，min(backlog, somaxconn)共同影响accept连接队列的大小
     //  backlog表示accept队列的大小
     ret = listen(listenFd_, 6);
     if(ret < 0) {

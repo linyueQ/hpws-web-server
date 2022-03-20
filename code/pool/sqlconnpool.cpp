@@ -27,6 +27,7 @@ void SqlConnPool::Init(const char* host, int port,
         sql = mysql_real_connect(sql, host,
                                  user, pwd,
                                  dbName, port, nullptr, 0);
+        printf("SqlConnPool::GetConn()->connQue.front()--%s",connQue_.front()->user);
         if (!sql) {
             LOG_ERROR("MySql Connect error!");
         }
@@ -39,12 +40,21 @@ void SqlConnPool::Init(const char* host, int port,
 
 MYSQL* SqlConnPool::GetConn() {
     MYSQL *sql = nullptr;
+    //Step1：先用一个判断，将connQue为空时继续有其他线程进入的话，可以
+    //  避免他们阻塞在sem_wait上
     if(connQue_.empty()){
         LOG_WARN("SqlConnPool busy!");
         return nullptr;
     }
-    //有连接可用的时候才继续执行（这里处理线程可能会阻塞）
+    //Step2：有连接可用的时候才继续执行（这里处理线程可能会阻塞）
     //  应该设置一个定时器专门处理超时操作
+    //为什么要有信号量？如果没有sem_wait，然后在lock_guard以后有检查queue.size()==0
+    //  然后再决定是否释放锁，那么当连接池长时间为空，然后有其他线程想FreeConn时，
+    //  很有可能因为获取不到锁而一直无法放回连接，另一边获取连接的线程却不断获取到
+    //  锁，然后发现没有连接，又释放锁（多次无效地获取锁），极大地浪费了资源。所以，
+    //  我们需要先加个信号量。当有信号量时，最多只有pool.size()个线程能够进入sem_wait
+    //  后面的临界区，其他线程要么就在connQue.empty()处返回，要么就阻塞在sem_wait中
+    //  没有其他线程会和FreeConn的线程争用mutex，大大减少了无效的上下文切换
     sem_wait(&semId_);
     {
         lock_guard<mutex> locker(mtx_);

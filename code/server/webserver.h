@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "epoller.h"
 #include "../log/log.h"
@@ -62,7 +63,7 @@ private:
     std::unique_ptr<HeapTimer> timer_;          // 定时器
     std::unique_ptr<MyThreadPool> threadpool_;  // 线程池
     std::unique_ptr<Epoller> epoller_;          // epoll对象
-    std::unordered_map<int, HttpConn> users_;   // 客户端连接的信息
+    std::unordered_map<int, HttpConn> users_;   // 客户端连接的信息【文件描述符，HttpConn】
 };
 
 

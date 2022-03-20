@@ -94,6 +94,7 @@ void Log::init(int level = 1, const char* path, const char* suffix, int maxQueue
     }
 }
 
+//事实上这个日志并不能做到绝对的时间严格，因为获取时间的时候没有加lock
 void Log::write(int level, const char *format, ...) {
     //获取当前的系统时间
     struct timeval now = {0, 0};

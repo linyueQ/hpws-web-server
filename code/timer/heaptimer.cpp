@@ -92,7 +92,7 @@ void HeapTimer::adjust(int id, int timeout) {
     /* 调整指定id的结点 */
     assert(!heap_.empty() && ref_.count(id) > 0);
     heap_[ref_[id]].expires = Clock::now() + MS(timeout);
-    //这里可能会变小，应该把siftup考虑上
+    //这里可能会变小，应该把siftup考虑上（使用上其实不可能，因为时间戳只会变大）
     if(siftdown_(ref_[id], heap_.size())){
         siftup_(ref_[id]);
     }

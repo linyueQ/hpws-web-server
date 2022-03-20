@@ -29,7 +29,7 @@ void HttpConn::init(int fd, const sockaddr_in& addr) {
 }
 
 void HttpConn::Close() {
-    response_.UnmapFile();  // 接触内存映射
+    response_.UnmapFile();  // 解除内存映射
     if(isClose_ == false){
         isClose_ = true; 
         userCount--;
@@ -71,15 +71,16 @@ ssize_t HttpConn::read(int* saveErrno) {
 ssize_t HttpConn::write(int* saveErrno) {
     ssize_t len = -1;
     //write的每个循环都有3种情况：
-    //  （1）第一块每写完；（2）第一块写完，第二块每写完；（3）两块都写完；
+    //  （1）第一块没写完；（2）第一块写完，第二块没写完；（3）两块都写完；
+    // 一次性写完数据避免
     do {
         // uio.h提供writev来分散写iov数组里面的数据（这里是将数据写到socket文件描述符中）
         //  写完以后有几种情况：
         //  （1）如果全部数据写入，则直接进入分支2；
         //  （2）如果只写了第一块的一部分，则len<iov[0]_.len，进入分支3
-        //  （3）如果写完第一块，但第二块每写完，则先进入分支2，然后两块的len都转换为0;
+        //  （3）如果写完第一块，但第二块没写完，则先进入分支2，然后两块的len都转换为0;
         len = writev(fd_, iov_, iovCnt_);//非阻塞
-        if(len <= 0) {//有可能数据没写完，但是socket的写缓冲区不够位置，所以break
+        if(len <= 0) {//有可能数据没写完，但是socket的写缓冲区不够位置，返回EAGAIN，所以break
             *saveErrno = errno;
             break;
         }
@@ -107,11 +108,11 @@ ssize_t HttpConn::write(int* saveErrno) {
 // 处理用户发送过来的请求（数据已经读到readBuffer中）
 //  业务逻辑处理（这里只提供了一个资源访问功能）
 bool HttpConn::process() {
-    // 初始化请求对象
+    // Step1：初始化请求对象
     // printf("start HttpConn::process()\n");
     request_.Init();
     
-    // 尝试读取数据并进行相应处理
+    // Step2：尝试读取缓冲区的数据并进行相应处理
     if(readBuff_.ReadableBytes() <= 0) {    // 判断是否有请求数据
         // printf("No available data, return false\n");
         return false;
@@ -125,7 +126,7 @@ bool HttpConn::process() {
         response_.Init(srcDir, request_.path(), false, 400);
     }
 
-    // 生成响应信息（往writeBuff_中写入响应信息）
+    // Step3：生成响应信息（往writeBuff_中写入响应信息）
     response_.MakeResponse(writeBuff_);
 
     // 响应头

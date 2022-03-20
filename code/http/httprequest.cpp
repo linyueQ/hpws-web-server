@@ -48,7 +48,7 @@ bool HttpRequest::parse(Buffer& buff) {
             case HEADERS:
                 // 解析请求头
                 ParseHeader_(line);
-                // 这里是为了处理只有“请求行”和“HEADER”的报文，如果没有BODY的数据，
+                // 这里是为了处理只有“请求行”和“HEADER”的GET请求报文，如果没有BODY的数据，
                 //  则readbuff剩下\r\n
                 if(buff.ReadableBytes() <= 2) {
                     state_ = FINISH;
@@ -89,7 +89,7 @@ void HttpRequest::ParsePath_() {
 
 bool HttpRequest::ParseRequestLine_(const string& line) {
     // GET / HTTP/1.1
-    //[^ ]*表示除了空格以外的任意多个字符
+    //[^ ]*表示除了空格以外的任意多个字符，每个括号匹配一个字段
     regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
     smatch subMatch;
     if(regex_match(line, subMatch, patten)) {   
@@ -108,7 +108,7 @@ bool HttpRequest::ParseRequestLine_(const string& line) {
 void HttpRequest::ParseHeader_(const string& line) {
     // 使用正则表达式分离出key:value这种配对
     // 第一个^表示字符串开头，()表示子表达式的开始结束位置，$表示字符串结尾
-    //  第二个^表示取反，?表示匹配前面的子表达式零次或一次，.表示任意字符
+    // 第二个^表示取反，?表示匹配前面的子表达式零次或一次，.表示任意字符
     regex patten("^([^:]*): ?(.*)$");
     smatch subMatch;
     //注意header会有多行
@@ -138,7 +138,7 @@ void HttpRequest::ParsePost_() {
     if(method_ == "POST" && header_["Content-Type"] == "application/x-www-form-urlencoded") {
         // 解析表单信息
         ParseFromUrlencoded_();
-        // 检查请求路径是否为register.html和login.html中的一个
+        // 检查请求路径是否为register.html和login.html中的一个，否则不可能有输入用户和密码的数据
         if(DEFAULT_HTML_TAG.count(path_)) {
             int tag = DEFAULT_HTML_TAG.find(path_)->second;
             LOG_DEBUG("Tag:%d", tag);
@@ -181,7 +181,7 @@ void HttpRequest::ParseFromUrlencoded_() {
             body_[i] = ' ';
             break;
         case '%':
-            // 简单的加密操作，存进数据库里面，比如名字为中文的时候，传输过来的数据就是一串
+            // key和value都被前端进行了简单的加密，传输过来的数据就是一串
             //  带%的码，eg.username=%E9%AB%98%E8&password=123
             num = ConverHex(body_[i + 1]) * 16 + ConverHex(body_[i + 2]);
             body_[i + 2] = num % 10 + '0';
@@ -199,7 +199,7 @@ void HttpRequest::ParseFromUrlencoded_() {
             break;
         }
     }
-    assert(j <= i);
+    assert(j <= i);//说明数据包有问题
     if(post_.count(key) == 0 && j < i) {
         value = body_.substr(j, i - j);
         post_[key] = value;
