@@ -150,14 +150,15 @@ void Log::write(int level, const char *format, ...) {
 
         //va_start用来将vaList的指针移动到相应位置（跳过format）
         va_start(vaList, format);
-        //复制所有内容到buff相应位置（这里不安全，WritableBytes()不一定大于vaList的内容）
-        int m = vsnprintf(buff_.BeginWrite(), buff_.WritableBytes(), format, vaList);
-        
+        //复制所有内容到buff相应位置（这里WritableBytes()不一定大于vaList的内容，所以内容可能会被截断，
+        //  改成环形队列后只能够使用），这里一个折衷的方法是限制log最大长度为1024，统一读进来再写入到
+        //  环形队列中
+        char tmpLog[1024];
+        int m = vsnprintf(tmpLog, 1024, format, vaList);
+        buff_.Append(tmpLog, strlen(tmpLog));
+        buff_.Append("\n\0", 2);
         //清空可变参数列表中的内容
         va_end(vaList);
-
-        buff_.HasWritten(m);
-        buff_.Append("\n\0", 2);
 
         if(isAsync_ && deque_ && !deque_->full()) {
             deque_->push_back(buff_.RetrieveAllToStr());

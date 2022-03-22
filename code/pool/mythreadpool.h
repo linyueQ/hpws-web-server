@@ -31,9 +31,9 @@ public:
     explicit MyThreadPool(size_t _initThreadNum=8, size_t _maxThreadNum=16):
         maxThreadNum(_maxThreadNum), _pool(std::make_shared<Pool>()){
         std::shared_ptr<Pool>& pool=_pool;
+        pool->isClosed = false; 
         AddThreads(_initThreadNum);
         pool->idleThreadNum = _initThreadNum;
-        pool->isClosed = false;
     }
     MyThreadPool(const MyThreadPool&)=delete;
     MyThreadPool(MyThreadPool&&)=delete;

@@ -27,7 +27,7 @@ void SqlConnPool::Init(const char* host, int port,
         sql = mysql_real_connect(sql, host,
                                  user, pwd,
                                  dbName, port, nullptr, 0);
-        printf("SqlConnPool::GetConn()->connQue.front()--%s",connQue_.front()->user);
+        // printf("SqlConnPool::GetConn()->connQue.front()--%s",connQue_.front()->user);
         if (!sql) {
             LOG_ERROR("MySql Connect error!");
         }
