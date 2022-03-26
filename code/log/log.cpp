@@ -104,8 +104,8 @@ void Log::write(int level, const char *format, ...) {
     struct tm t = *sysTime;
     va_list vaList;
 
-    /* 根据 日志日期 日志行数 判断是否要新建日志文件 */
-    if (toDay_ != t.tm_mday || (lineCount_ && (lineCount_  %  MAX_LINES == 0)))
+    /* 根据 日志日期 日志行数 判断是否要新建日志文件（日志滚动） */
+    if (toDay_ != t.tm_mday || (lineCount_ != 0 && (lineCount_  %  MAX_LINES == 0)))
     {
         unique_lock<mutex> locker(mtx_);
         locker.unlock();

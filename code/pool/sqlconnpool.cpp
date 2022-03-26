@@ -27,12 +27,12 @@ void SqlConnPool::Init(const char* host, int port,
         sql = mysql_real_connect(sql, host,
                                  user, pwd,
                                  dbName, port, nullptr, 0);
-        // printf("SqlConnPool::GetConn()->connQue.front()--%s",connQue_.front()->user);
         if (!sql) {
             LOG_ERROR("MySql Connect error!");
         }
         //将建立好的连接放入连接队列中
         connQue_.push(sql);
+        // printf("SqlConnPool::GetConn()->connQue.front()--%s",connQue_.front()->user);
     }
     MAX_CONN_ = connSize;
     sem_init(&semId_, 0, MAX_CONN_);//初始化信号量
