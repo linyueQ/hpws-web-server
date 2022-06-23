@@ -125,7 +125,7 @@ void HeapTimer::clear() {
     heap_.clear();
 }
 
-int HeapTimer::GetNextTick() {
+int HeapTimer::getNextTick() {
     tick();
     size_t res = -1;
     //返回距离下一个事件过期还要过多久（指导epoll_wait的等待时间）

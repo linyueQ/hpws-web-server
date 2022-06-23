@@ -8,7 +8,7 @@ WebServer::WebServer(
             const char* dbName, int connPoolNum, int threadNum,
             bool openLog, int logLevel, int logQueSize):
             port_(port), openLinger_(OptLinger), timeoutMS_(timeoutMS), isClose_(false),
-            timer_(new HeapTimer()), threadpool_(new MyThreadPool(threadNum)), epoller_(new Epoller())
+            timer_(new RBTimer()), threadpool_(new MyThreadPool(threadNum)), epoller_(new Epoller())
     {
     // Step1：获取HTTP服务器的资源目录（装了各种各样的html文件）
     // /home/linyueq/WebServer-master/
@@ -24,7 +24,9 @@ WebServer::WebServer(
     HttpConn::srcDir = srcDir_;     //设置资源目录
 
     // Step3：初始化数据库连接池
-    SqlConnPool::Instance()->Init("localhost", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
+    // SqlConnPool::Instance()->Init("localhost", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
+    // 使用docker数据库不应该用localhost，因为不是本机，而是远程访问
+    SqlConnPool::Instance()->Init("linux", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
 
     // Step4：初始化epoll事件的模式（指EPOLL的触发模式、以及最开始要监听什么类型的事件）
     InitEventMode_(trigMode);
@@ -106,7 +108,7 @@ void WebServer::Start() {
         // 如果设置了超时时间，例如60s,则只要一个连接60秒没有读写操作，则关闭
         if(timeoutMS_ > 0) {
             // 通过定时器GetNextTick(),清除超时的节点，然后获取最先要超时的连接的超时时间
-            timeMS = timer_->GetNextTick();
+            timeMS = timer_->getNextTick();
         }
 
         // timeMS是最先要超时的连接的超时的时间，传递到epoll_wait()函数中

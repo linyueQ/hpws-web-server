@@ -13,7 +13,7 @@
 
 #include "epoller.h"
 #include "../log/log.h"
-#include "../timer/heaptimer.h"
+#include "../timer/rbtimer.h"
 #include "../pool/sqlconnpool.h"
 #include "../pool/mythreadpool.h"
 #include "../pool/sqlconnRAII.h"
@@ -60,7 +60,7 @@ private:
     uint32_t listenEvent_;              // 监听的文件描述符的事件
     uint32_t connEvent_;                // 连接的文件描述符的事件
    
-    std::unique_ptr<HeapTimer> timer_;          // 定时器
+    std::unique_ptr<RBTimer> timer_;          // 定时器
     std::unique_ptr<MyThreadPool> threadpool_;  // 线程池
     std::unique_ptr<Epoller> epoller_;          // epoll对象
     std::unordered_map<int, HttpConn> users_;   // 客户端连接的信息【文件描述符，HttpConn】

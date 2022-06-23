@@ -51,7 +51,7 @@ public:
 
     void pop();
 
-    int GetNextTick();      //处理堆中所有的超时事务，并返回距离下一个要过期的事件还要过多久
+    int getNextTick();      //处理堆中所有的超时事务，并返回距离下一个要过期的事件还要过多久
 
 private:
     void del_(size_t i);
